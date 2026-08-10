@@ -1,0 +1,43 @@
+{
+  "name": "canvas-codex",
+  "version": "0.1.0+codex.20260804092216",
+  "description": "Node-based local canvas for Codex text-to-image and image-to-image workflows.",
+  "author": {
+    "name": "Codex-Canvas Contributors"
+  },
+  "homepage": "https://github.com/Xiangyu-CAS/codex-canvas",
+  "repository": "https://github.com/Xiangyu-CAS/codex-canvas.git",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "canvas",
+    "imagegen",
+    "images"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Canvas Codex",
+    "shortDescription": "Build connected text-to-image and image-to-image workflows.",
+    "longDescription": "A customized Codex Canvas with prompt, image, and generation nodes, visual connections, saved workflows, and background ImageGen execution.",
+    "developerName": "Codex-Canvas Contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Xiangyu-CAS/codex-canvas",
+    "privacyPolicyURL": "https://github.com/Xiangyu-CAS/codex-canvas",
+    "termsOfServiceURL": "https://github.com/Xiangyu-CAS/codex-canvas",
+    "defaultPrompt": [
+      "Open the Codex-Canvas board",
+      "Generate an image and collect it on canvas",
+      "Show the current canvas status"
+    ],
+    "brandColor": "#14161B",
+    "composerIcon": "./logo.svg",
+    "logo": "./logo.svg",
+    "screenshots": []
+  }
+}
