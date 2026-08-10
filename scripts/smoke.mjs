@@ -1421,7 +1421,7 @@ async function testFrontendActionContract() {
   ) {
     throw new Error("multi-selection should outline actual images with an accurate aggregate frame and size label.");
   }
-  for (const action of ["remove-bg", "crop", "expand", "edit-elements"]) {
+  for (const action of ["remove-bg", "crop", "expand", "edit-elements", "edit-text"]) {
     if (!workflowStudio.includes(`"${action}"`)) {
       throw new Error(`workflow result nodes should expose the ${action} editing action.`);
     }
@@ -1435,12 +1435,13 @@ async function testFrontendActionContract() {
   }
   if (
     !workflowStudio.includes("async function materializeResultForCanvasAction")
-    || !workflowStudio.includes('action === "crop" || action === "edit-elements"')
+    || !workflowStudio.includes('["crop", "edit-elements", "edit-text"].includes(action)')
     || !workflowStudio.includes('new CustomEvent("codex-canvas:materialized-image-action"')
     || !app.includes('window.addEventListener("codex-canvas:materialized-image-action"')
     || !app.includes('startImageJob("edit-elements")')
+    || !app.includes('openImageActionComposer("edit-text")')
   ) {
-    throw new Error("workflow Crop and Edit Elements should materialize the source and reuse the ordinary canvas image actions without derived graph edges.");
+    throw new Error("workflow Crop, Edit Elements, and Edit Text should materialize the source and reuse ordinary canvas image actions without derived graph edges.");
   }
   if (
     !workflowStudio.includes('await revealCanvasObjects([result.id]);')

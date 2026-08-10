@@ -751,7 +751,7 @@ window.addEventListener("codex-canvas:workflow-edit-mode", (event) => {
 window.addEventListener("codex-canvas:materialized-image-action", async (event) => {
   const action = String(event.detail?.action || "");
   const objectId = String(event.detail?.objectId || "");
-  if (!["crop", "edit-elements"].includes(action) || !objectId) return;
+  if (!["crop", "edit-elements", "edit-text"].includes(action) || !objectId) return;
   await loadState();
   const object = state?.objects?.find((item) => (
     item.id === objectId && (item.type || "image") === "image" && !item.hidden
@@ -764,6 +764,10 @@ window.addEventListener("codex-canvas:materialized-image-action", async (event) 
   render();
   if (action === "crop") {
     startCropMode();
+    return;
+  }
+  if (action === "edit-text") {
+    openImageActionComposer("edit-text");
     return;
   }
   startImageJob("edit-elements");
@@ -1182,7 +1186,7 @@ textToolbar?.addEventListener("pointerdown", (event) => {
 function delegateWorkflowToolbarAction(action) {
   const selectedImage = selectedImageDescriptor();
   if (selectedImage?.surface !== "workflow") return false;
-  if (!["remove-bg", "crop", "edit-elements"].includes(action)) return false;
+  if (!["remove-bg", "crop", "edit-elements", "edit-text"].includes(action)) return false;
   const detail = {
     action,
     objectId: selectedImage.objectId,

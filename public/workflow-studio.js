@@ -278,7 +278,7 @@ window.addEventListener("codex-canvas:selection-changed", (event) => {
 window.addEventListener("codex-canvas:workflow-toolbar-action", (event) => {
   const action = String(event.detail?.action || "");
   const objectId = String(event.detail?.objectId || "");
-  if (!["remove-bg", "expand", "crop", "edit-elements"].includes(action) || !objectId) return;
+  if (!["remove-bg", "expand", "crop", "edit-elements", "edit-text"].includes(action) || !objectId) return;
   const selectedNode = graph.nodes.find((node) => (
     node.type === "result"
     && selectedResultNodeIds.has(node.id)
@@ -292,7 +292,7 @@ window.addEventListener("codex-canvas:workflow-toolbar-action", (event) => {
   selectedResultNodeIds = new Set([node.id]);
   selectedResultNodeId = node.id;
   isolatedWorkflowResultNodeId = node.workflowGroupId ? node.id : null;
-  if (action === "crop" || action === "edit-elements") {
+  if (["crop", "edit-elements", "edit-text"].includes(action)) {
     materializeResultForCanvasAction(node, action)
       .catch((error) => showToast(error?.message || tr("jobFailed")));
     return;
