@@ -3841,6 +3841,23 @@ function renderJobObject(object) {
     message.textContent = object.error || "Image job failed.";
     shell.append(message);
   } else {
+    const state = document.createElement("div");
+    state.className = "job-generation-state";
+    const pulse = document.createElement("span");
+    pulse.className = "job-generation-pulse";
+    pulse.setAttribute("aria-hidden", "true");
+    const label = document.createElement("strong");
+    label.textContent = language === "zh" ? "正在生成" : "Generating";
+    const detail = document.createElement("span");
+    detail.textContent = labelAction(object.action || "generate");
+    state.append(pulse, label, detail);
+    shell.append(state);
+
+    const progress = document.createElement("div");
+    progress.className = "job-generation-progress";
+    progress.setAttribute("aria-hidden", "true");
+    shell.append(progress);
+
     const ripple = document.createElement("div");
     ripple.className = "job-ripple";
     shell.append(ripple);

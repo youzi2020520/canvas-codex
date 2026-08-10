@@ -1747,6 +1747,7 @@ function renderStudioNode(node) {
   run.append(runText);
 
   body.append(promptLabel, references, settings, run);
+  if (node.status === "running") body.append(renderStudioGenerationState(node));
   if (node.error) {
     const error = document.createElement("p");
     error.className = "studio-error";
@@ -1761,6 +1762,29 @@ function renderStudioNode(node) {
   }
   element.append(portButton("output", "result", tr("output")));
   return element;
+}
+
+function renderStudioGenerationState(node) {
+  const state = document.createElement("div");
+  state.className = "studio-generation-state";
+  state.setAttribute("role", "status");
+  const visual = document.createElement("span");
+  visual.className = "studio-generation-orbit";
+  visual.setAttribute("aria-hidden", "true");
+  const copy = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = tr("generating");
+  const detail = document.createElement("span");
+  const jobCount = Math.max(1, node.jobIds?.length || node.count || 1);
+  detail.textContent = document.documentElement.lang.startsWith("zh")
+    ? `正在处理 ${jobCount} 个生成任务`
+    : `Processing ${jobCount} generation ${jobCount === 1 ? "task" : "tasks"}`;
+  copy.append(title, detail);
+  const bar = document.createElement("span");
+  bar.className = "studio-generation-bar";
+  bar.setAttribute("aria-hidden", "true");
+  state.append(visual, copy, bar);
+  return state;
 }
 
 function ratioPicker(node) {

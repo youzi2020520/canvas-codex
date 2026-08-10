@@ -1444,6 +1444,14 @@ async function testFrontendActionContract() {
     throw new Error("workflow Crop, Edit Elements, and Edit Text should materialize the source and reuse ordinary canvas image actions without derived graph edges.");
   }
   if (
+    !app.includes('state.className = "job-generation-state"')
+    || !styles.includes(".job-generation-progress")
+    || !workflowStudio.includes("function renderStudioGenerationState")
+    || !styles.includes(".studio-generation-state")
+  ) {
+    throw new Error("running image jobs should show an animated generation state both on the canvas and in workflow generation nodes.");
+  }
+  if (
     !workflowStudio.includes('await revealCanvasObjects([result.id]);')
     || !workflowStudio.includes("const completedResultIds = graph.nodes")
   ) {
