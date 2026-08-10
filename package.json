@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "Node-based local canvas for Codex text-to-image and image-to-image workflows.",
   "type": "module",
-  "homepage": "https://github.com/Xiangyu-CAS/codex-canvas",
+  "homepage": "https://github.com/youzi2020520/canvas-codex",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Xiangyu-CAS/codex-canvas.git"
+    "url": "https://github.com/youzi2020520/canvas-codex.git"
   },
   "bin": {
     "codex-canvas": "./bin/codex-canvas.mjs"

@@ -1,17 +1,16 @@
-# Codex-Canvas 安装说明
+# Canvas-Codex 安装说明
 
-仓库地址：https://github.com/Xiangyu-CAS/codex-canvas.git
+仓库地址：https://github.com/youzi2020520/canvas-codex.git
 
-## 让 Codex 自动安装
+## 一句话安装（推荐）
 
-可以把下面这段作为安装任务发给 Codex：
+把下面整段复制到 Codex 对话中即可：
 
 ```text
-请根据 https://github.com/Xiangyu-CAS/codex-canvas.git 里的 INSTALL.md 安装 Codex-Canvas。
-安装完成后，新建一个 Codex 任务，再使用 @Codex-Canvas 打开画布
+请从 https://github.com/youzi2020520/canvas-codex.git 安装 Canvas-Codex。请阅读仓库中的 INSTALL.md，克隆仓库到本机长期保留的位置，运行 npm ci、npm run install:personal 和 codex plugin add codex-canvas@personal。安装完成后请提示我新建 Codex 任务，再输入 @Codex-Canvas 打开画布。
 ```
 
-安装流程是：把仓库 clone 到本机一个长期保留的目录，切换到最新稳定 Release 对应的本地分支，运行 personal marketplace 安装器，然后用 Codex CLI 安装这个 personal plugin。不要直接从 `main` 安装。
+当前仓库尚未发布 GitHub Release，因此安装器会从 `main` 安装。后续发布稳定版本后，安装流程会切换为固定到 Release tag。
 
 ## 手动安装
 
@@ -19,14 +18,12 @@
 
 ```bash
 mkdir -p ~/src
-git clone https://github.com/Xiangyu-CAS/codex-canvas.git ~/src/codex-canvas
-cd ~/src/codex-canvas
-npm run checkout:stable
+git clone https://github.com/youzi2020520/canvas-codex.git ~/src/canvas-codex
+cd ~/src/canvas-codex
 npm ci
 npm run install:personal
+codex plugin add codex-canvas@personal
 ```
-
-`npm run checkout:stable` 会从最新的稳定 `vX.Y.Z` tag 创建或更新本地 `codex-canvas-stable` 分支，并让它跟踪 `origin/main` 以便发现后续 tag。工作树最终必须精确停在 Release commit；因此即使 clone 时 `main` 已经包含未发布提交，也不会把它们安装给普通用户。
 
 `npm run install:personal` 会创建或更新 `~/plugins/codex-canvas`，并把插件条目写进 `~/.agents/plugins/marketplace.json`。它还会 best-effort 尝试安装 `rapidocr_onnxruntime`，用于 `Edit Text` 本地 OCR；这一步通常需要几十秒到几分钟，取决于 Python、pip、网络和 wheel 缓存。如果安装失败，personal plugin 仍会安装完成，`Edit Text` 会回退到 Codex 视觉识别。
 
@@ -73,8 +70,8 @@ node ./bin/codex-canvas.mjs update
 所有 `0.1.1` 及更早的安装都需要做一次手动 bootstrap，因为旧 cache 里的更新器无法安全迁移自己。最稳妥的方式是保留旧目录，另外创建一个干净的长期 clone：
 
 ```bash
-git clone https://github.com/Xiangyu-CAS/codex-canvas.git ~/src/codex-canvas-stable
-cd ~/src/codex-canvas-stable
+git clone https://github.com/youzi2020520/canvas-codex.git ~/src/canvas-codex-stable
+cd ~/src/canvas-codex-stable
 npm run checkout:stable
 npm ci
 npm run install:personal -- --skip-ocr

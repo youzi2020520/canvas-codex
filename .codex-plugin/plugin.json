@@ -1,12 +1,12 @@
 {
   "name": "canvas-codex",
-  "version": "0.1.0+codex.20260804092216",
+  "version": "0.1.0+codex.20260810031704",
   "description": "Node-based local canvas for Codex text-to-image and image-to-image workflows.",
   "author": {
     "name": "Codex-Canvas Contributors"
   },
-  "homepage": "https://github.com/Xiangyu-CAS/codex-canvas",
-  "repository": "https://github.com/Xiangyu-CAS/codex-canvas.git",
+  "homepage": "https://github.com/youzi2020520/canvas-codex",
+  "repository": "https://github.com/youzi2020520/canvas-codex.git",
   "license": "MIT",
   "keywords": [
     "codex",
@@ -27,9 +27,9 @@
       "Read",
       "Write"
     ],
-    "websiteURL": "https://github.com/Xiangyu-CAS/codex-canvas",
-    "privacyPolicyURL": "https://github.com/Xiangyu-CAS/codex-canvas",
-    "termsOfServiceURL": "https://github.com/Xiangyu-CAS/codex-canvas",
+    "websiteURL": "https://github.com/youzi2020520/canvas-codex",
+    "privacyPolicyURL": "https://github.com/youzi2020520/canvas-codex",
+    "termsOfServiceURL": "https://github.com/youzi2020520/canvas-codex",
     "defaultPrompt": [
       "Open the Codex-Canvas board",
       "Generate an image and collect it on canvas",

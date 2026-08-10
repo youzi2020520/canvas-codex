@@ -15,7 +15,7 @@ Codex-Canvas 是一个面向 Codex 的无限画布 Plugin，无需配置 API，�
 把下面这段复制给 Codex：
 
 ```text
-请根据 https://github.com/Xiangyu-CAS/codex-canvas.git 里的 INSTALL.md 安装 Codex-Canvas。
+请根据 https://github.com/youzi2020520/canvas-codex.git 里的 INSTALL.md 安装 Codex-Canvas。
 安装完成后，提示用户新建 Codex 任务，再输入：`@Codex-Canvas 打开画布` 来启动
 ```
 

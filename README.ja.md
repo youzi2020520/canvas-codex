@@ -15,7 +15,7 @@ Codex に Lovart に近い作業スタイルを追加します。片側でチャ
 次のプロンプトを Codex にコピーしてください。
 
 ```text
-https://github.com/Xiangyu-CAS/codex-canvas.git とその INSTALL.md に従って Codex-Canvas をインストールしてください。
+https://github.com/youzi2020520/canvas-codex.git とその INSTALL.md に従って Codex-Canvas をインストールしてください。
 インストール後、新しい Codex タスクを開始し、`@Codex-Canvas codex canvas を開いて` と入力するようユーザーに伝えてください。
 ```
 

@@ -15,7 +15,7 @@ It brings a Lovart-like workflow to Codex: chat on one side, canvas on the other
 Copy this prompt into Codex:
 
 ```text
-Please install Codex-Canvas according to https://github.com/Xiangyu-CAS/codex-canvas.git and its INSTALL.md.
+Please install Codex-Canvas according to https://github.com/youzi2020520/canvas-codex.git and its INSTALL.md.
 After installation, tell the user to start a new Codex task and type `@Codex-Canvas open the codex canvas`.
 ```
 
