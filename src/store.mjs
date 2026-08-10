@@ -825,8 +825,8 @@ async function removeDuplicateAsset(asset, duplicate) {
 
 export async function addObject(projectDir, input, options = {}) {
   const type = typeof input.type === "string" ? input.type : "";
-  if (!["drawing", "text", "annotation"].includes(type)) {
-    const error = new Error("add_object requires type to be drawing, text, or annotation");
+  if (!["drawing", "text", "annotation", "html", "slides"].includes(type)) {
+    const error = new Error("add_object requires a supported canvas object type");
     error.statusCode = 400;
     throw error;
   }
@@ -1382,14 +1382,15 @@ function sanitizeObjectPatch(patch = {}) {
   ]) {
     if (Number.isFinite(patch[key])) next[key] = sanitizeDimension(patch[key]);
   }
-  for (const key of ["name", "text", "label", "color", "stroke", "status", "error", "layoutMode", "sourceObjectId", "jobId", "annotationTargetId", "annotationSessionId", "annotationRole", "annotationKind", "layerGroupId", "layerGroupName", "layerGroupSourceObjectId", "layerGroupKind", "layerGroupBackgroundStatus", "prompt", "imagegenPrompt", "fontFamily", "fontWeight", "fontStyle", "textDecoration", "textAlign"]) {
+  for (const key of ["name", "text", "label", "color", "stroke", "status", "error", "layoutMode", "sourceObjectId", "jobId", "annotationTargetId", "annotationSessionId", "annotationRole", "annotationKind", "layerGroupId", "layerGroupName", "layerGroupSourceObjectId", "layerGroupKind", "layerGroupBackgroundStatus", "prompt", "imagegenPrompt", "fontFamily", "fontWeight", "fontStyle", "textDecoration", "textAlign", "html"]) {
     if (patch[key] === null && key.startsWith("layerGroup")) {
       next[key] = null;
     } else if (typeof patch[key] === "string") {
-      const limit = key === "text" || key === "label" ? 2000 : key === "prompt" ? 4000 : key === "imagegenPrompt" ? 20000 : 300;
+      const limit = key === "html" ? 40000 : key === "text" || key === "label" ? 2000 : key === "prompt" ? 4000 : key === "imagegenPrompt" ? 20000 : 300;
       next[key] = patch[key].slice(0, limit);
     }
   }
+  if (Array.isArray(patch.slideIds)) next.slideIds = patch.slideIds.map(String).slice(0, 100);
   if (typeof patch.layerGroupLocked === "boolean") next.layerGroupLocked = patch.layerGroupLocked;
   if (typeof patch.hidden === "boolean") next.hidden = patch.hidden;
   if (typeof patch.locked === "boolean") next.locked = patch.locked;
@@ -1610,7 +1611,7 @@ function normalizeObject(input) {
   const base = {
     id: `${type}_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`,
     type,
-    name: sanitizeString(input.name, type === "text" ? "Text" : type === "annotation" ? "Annotation" : "Drawing"),
+    name: sanitizeString(input.name, type === "slides" ? "AI Slides" : type === "html" ? "HTML page" : type === "text" ? "Text" : type === "annotation" ? "Annotation" : "Drawing"),
     x: Number.isFinite(input.x) ? sanitizeCoordinate(input.x) : 120,
     y: Number.isFinite(input.y) ? sanitizeCoordinate(input.y) : 120,
     width: Number.isFinite(input.width) ? sanitizeDimension(input.width, 220) : 220,
@@ -1642,6 +1643,14 @@ function normalizeObject(input) {
       targetAnchorX: sanitizeUnitNumber(input.targetAnchorX),
       targetAnchorY: sanitizeUnitNumber(input.targetAnchorY)
     };
+  }
+
+  if (type === "html") {
+    return { ...base, html: sanitizeString(input.html, "<main style=\"display:grid;place-items:center;height:100%;font:700 42px Inter,sans-serif;background:#171a24;color:white\">HTML page</main>", 40000, false) };
+  }
+
+  if (type === "slides") {
+    return { ...base, width: Number.isFinite(input.width) ? sanitizeDimension(input.width) : 1048, height: Number.isFinite(input.height) ? sanitizeDimension(input.height) : 600, slideIds: Array.isArray(input.slideIds) ? input.slideIds.map(String).slice(0, 100) : [] };
   }
 
   return {

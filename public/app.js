@@ -933,6 +933,8 @@ document.addEventListener("click", (event) => {
       imageUploadInput.click();
       return;
     }
+    if (viewButton.dataset.viewAction === "add-slides") { createSlideObject("slides"); return; }
+    if (viewButton.dataset.viewAction === "add-html") { createSlideObject("html"); return; }
   }
 
   // Handle export control buttons (resolution/format)
@@ -3036,6 +3038,10 @@ function render() {
       element.append(renderAnnotationObject(object));
     } else if (object.type === "job") {
       element.append(renderJobObject(object));
+    } else if (object.type === "slides") {
+      element.append(renderSlidesObject(object));
+    } else if (object.type === "html") {
+      element.append(renderHtmlObject(object));
     } else {
       element.append(renderImageObject(object));
     }
@@ -3888,6 +3894,80 @@ function renderImageObject(object) {
   return frame;
 }
 
+function renderHtmlObject(object) {
+  const frame = document.createElement("div");
+  frame.className = "html-slide-content";
+  const iframe = document.createElement("iframe");
+  iframe.srcdoc = object.html || "";
+  iframe.title = object.name || "HTML page";
+  iframe.setAttribute("sandbox", "allow-scripts");
+  frame.append(iframe);
+  return frame;
+}
+
+function renderSlidesObject(deck) {
+  const frame = document.createElement("section");
+  frame.className = "slides-deck-content";
+  const header = document.createElement("header");
+  const title = document.createElement("strong");
+  title.textContent = deck.name || "AI Slides";
+  const present = document.createElement("button");
+  present.type = "button";
+  present.textContent = language === "zh" ? "演示" : "Present";
+  present.addEventListener("pointerdown", (event) => event.stopPropagation());
+  present.addEventListener("click", (event) => { event.stopPropagation(); openSlidesPresentation(deck.id); });
+  header.append(title, present);
+  const slides = (deck.slideIds || []).map((id) => state.objects.find((item) => item.id === id)).filter(Boolean);
+  const list = document.createElement("div");
+  list.className = "slides-deck-thumbnails";
+  if (!slides.length) list.innerHTML = `<span>${language === "zh" ? "拖入图片或 HTML 页面" : "Drag images or HTML pages here"}</span>`;
+  for (const slide of slides) {
+    const thumb = document.createElement("div");
+    thumb.className = "slides-deck-thumbnail";
+    if (slide.type === "html") {
+      const iframe = document.createElement("iframe"); iframe.srcdoc = slide.html || ""; iframe.setAttribute("sandbox", "allow-scripts"); thumb.append(iframe);
+    } else {
+      const image = document.createElement("img"); image.src = assetUrl(slide.src, slide); image.alt = slide.name || "Slide"; thumb.append(image);
+    }
+    list.append(thumb);
+  }
+  frame.append(header, list);
+  return frame;
+}
+
+async function createSlideObject(type) {
+  const center = screenToWorld(board.clientWidth / 2, board.clientHeight / 2);
+  const payload = type === "slides"
+    ? { type, name: "AI Slides", x: Math.round(center.x - 524), y: Math.round(center.y - 300), width: 1048, height: 600 }
+    : { type, name: "HTML page", x: Math.round(center.x - 320), y: Math.round(center.y - 180), width: 640, height: 360 };
+  const response = await fetch(apiPath("/api/objects"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+  const object = await response.json();
+  if (!response.ok) { showToast(object.error || t("jobFailed")); return; }
+  await loadState(); setLocalSelection([object.id], { fromUser: true }); render();
+}
+
+function openSlidesPresentation(deckId) {
+  const deck = state.objects.find((item) => item.id === deckId && item.type === "slides");
+  const slides = (deck?.slideIds || []).map((id) => state.objects.find((item) => item.id === id)).filter(Boolean);
+  if (!slides.length) { showToast(language === "zh" ? "请先将图片或 HTML 页面拖入 Slides" : "Add images or HTML pages first"); return; }
+  let index = 0;
+  const overlay = document.createElement("div"); overlay.className = "slides-presentation";
+  const renderSlide = () => {
+    const slide = slides[index];
+    stage.replaceChildren();
+    if (slide.type === "html") { const iframe = document.createElement("iframe"); iframe.srcdoc = slide.html || ""; iframe.setAttribute("sandbox", "allow-scripts"); stage.append(iframe); }
+    else { const image = document.createElement("img"); image.src = assetUrl(slide.src, slide); image.alt = slide.name || "Slide"; stage.append(image); }
+    counter.textContent = `${index + 1} / ${slides.length}`;
+    thumbs.querySelectorAll("button").forEach((button, i) => button.classList.toggle("active", i === index));
+  };
+  const close = () => { document.removeEventListener("keydown", keys); overlay.remove(); };
+  const keys = (event) => { if (event.key === "Escape") close(); if (event.key === "ArrowRight" || event.key === " ") { index = Math.min(slides.length - 1, index + 1); renderSlide(); } if (event.key === "ArrowLeft") { index = Math.max(0, index - 1); renderSlide(); } };
+  const top = document.createElement("header"); const closeButton = document.createElement("button"); closeButton.textContent = "×"; closeButton.onclick = close; const counter = document.createElement("span"); top.append(counter, closeButton);
+  const thumbs = document.createElement("aside"); slides.forEach((slide, i) => { const button = document.createElement("button"); button.textContent = String(i + 1); button.onclick = () => { index = i; renderSlide(); }; thumbs.append(button); });
+  const stage = document.createElement("main"); stage.onclick = (event) => { if (event.target === stage) { index = Math.min(slides.length - 1, index + 1); renderSlide(); } };
+  overlay.append(top, thumbs, stage); document.body.append(overlay); document.addEventListener("keydown", keys); renderSlide();
+}
+
 function applyImageAnnotationMetadata(element, object) {
   const label = imageAnnotationLabel(object);
   element.setAttribute("role", "img");
@@ -4219,7 +4299,18 @@ function endDrag(event) {
     window.dispatchEvent(new CustomEvent("codex-canvas:object-updated", {
       detail: { objectId: activeDrag.id }
     }));
+    if (object && ["image", "html"].includes(object.type || "image")) attachSlideToDeckIfDropped(object);
   }
+}
+
+async function attachSlideToDeckIfDropped(object) {
+  const deck = state.objects.find((item) => item.type === "slides" && object.id !== item.id
+    && object.x >= item.x && object.y >= item.y && object.x + object.width <= item.x + item.width && object.y + object.height <= item.y + item.height);
+  if (!deck || (deck.slideIds || []).includes(object.id)) return;
+  const slideIds = [...(deck.slideIds || []), object.id];
+  const response = await fetch(apiPath(`/api/objects/${encodeURIComponent(deck.id)}`), { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ slideIds }) });
+  if (!response.ok) return;
+  await loadState(); render(); showToast(language === "zh" ? "已加入 Slides" : "Added to Slides");
 }
 
 function startResize(event, object, direction) {

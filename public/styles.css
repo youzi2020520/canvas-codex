@@ -1585,6 +1585,22 @@ button {
   cursor: default;
   touch-action: none;
 }
+.canvas-object.slides-object { overflow: hidden; border-radius: 20px; background: #fff; }
+.canvas-object.html-object { overflow: hidden; }
+.html-slide-content, .html-slide-content iframe { width: 100%; height: 100%; border: 0; }
+.slides-deck-content { display: grid; height: 100%; grid-template-rows: auto 1fr; background: linear-gradient(145deg,#f6f2ff,#fff); }
+.slides-deck-content header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; color:#30264c; font-size:18px; }
+.slides-deck-content header button { border-radius:8px; padding:7px 12px; background:#6f4ee8; color:#fff; font-weight:750; }
+.slides-deck-thumbnails { display:flex; gap:16px; overflow:auto; align-items:center; padding:16px; }
+.slides-deck-thumbnails > span { margin:auto; color:#766d87; font-weight:650; }
+.slides-deck-thumbnail { flex:0 0 240px; aspect-ratio:16/9; overflow:hidden; border-radius:10px; background:#e6e4ea; box-shadow:0 5px 15px rgba(36,27,66,.13); }
+.slides-deck-thumbnail img,.slides-deck-thumbnail iframe { width:100%;height:100%;border:0;object-fit:cover;pointer-events:none; }
+.slides-presentation { position:fixed; inset:0; z-index:200; display:grid; grid-template-columns:76px 1fr; grid-template-rows:56px 1fr; background:#11131a; color:#fff; }
+.slides-presentation header { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; padding:0 20px; background:rgba(255,255,255,.08); }
+.slides-presentation header button { font-size:28px;color:#fff; }
+.slides-presentation aside { display:grid; align-content:start; gap:8px; padding:12px; background:rgba(255,255,255,.05); }
+.slides-presentation aside button { height:38px;border-radius:7px;color:#ddd;background:rgba(255,255,255,.1); }.slides-presentation aside button.active {background:#7455e8;color:white;}
+.slides-presentation main { display:grid; place-items:center; padding:32px; }.slides-presentation main img,.slides-presentation main iframe { width:min(100%,1280px); max-height:100%; aspect-ratio:16/9; border:0; object-fit:contain; background:white; box-shadow:0 20px 70px #0008; }
 
 .canvas-object.dragging {
   cursor: grabbing;
