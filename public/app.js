@@ -260,7 +260,17 @@ const translations = {
       "reference-generate": "Reference Generate",
       "send-to-chat": "Send to chat",
       "copy-file-mention": "Copy @file",
-      "download": "Download"
+      "download": "Download",
+      "toggle-resolution": "Resolution",
+      "text-bold": "Bold",
+      "text-italic": "Italic",
+      "text-underline": "Underline",
+      "text-color": "Text color",
+      "text-font-family": "Font",
+      "text-font-size": "Font size",
+      "text-align": "Alignment",
+      "text-lock": "Lock",
+      "text-delete": "Delete"
     },
     actionNames: {
       "quick-edit": "Quick Edit",
@@ -470,7 +480,17 @@ const translations = {
       "reference-generate": "参考生图",
       "send-to-chat": "发送到对话",
       "copy-file-mention": "复制 @文件",
-      "download": "下载"
+      "download": "下载",
+      "toggle-resolution": "分辨率",
+      "text-bold": "加粗",
+      "text-italic": "倾斜",
+      "text-underline": "下划线",
+      "text-color": "文字颜色",
+      "text-font-family": "字体",
+      "text-font-size": "字号",
+      "text-align": "对齐方式",
+      "text-lock": "锁定",
+      "text-delete": "删除"
     },
     actionNames: {
       "quick-edit": "编辑图片",
