@@ -1,6 +1,6 @@
 {
   "name": "canvas-codex",
-  "version": "0.1.0+codex.20260810031704",
+  "version": "0.1.0+codex.20260810035113",
   "description": "Node-based local canvas for Codex text-to-image and image-to-image workflows.",
   "author": {
     "name": "Codex-Canvas Contributors"
