@@ -14,7 +14,7 @@ import { exportLayerGroupPsd } from "../src/psd-export.mjs";
 import { canvasIdForThread } from "../src/runtime.mjs";
 import { createOperationLease } from "../src/operation-leases.mjs";
 import { createServer as createAgentCanvasServer } from "../src/server.mjs";
-import { addImage, addObject, deleteObjects, markStaleJobPlaceholders, promptHistory, readState, reorderLayerGroupLayer, restoreObjects, searchObjects, setLayerGroupOrder, transformState, updateObject, updateObjects, updateSelection, updateViewport, versionGroups } from "../src/store.mjs";
+import { addImage, addJobPlaceholder, addObject, deleteObjects, markStaleJobPlaceholders, promptHistory, readState, reorderLayerGroupLayer, restoreObjects, searchObjects, setLayerGroupOrder, transformState, updateObject, updateObjects, updateSelection, updateViewport, versionGroups } from "../src/store.mjs";
 import { appUpdateStatus, clearPublishedReleaseCacheForTest, updateApp } from "../src/updater.mjs";
 
 const execFileAsync = promisify(execFile);
@@ -58,6 +58,7 @@ async function main() {
     ["frontend action contract", testFrontendActionContract],
     ["canvas history queue", testCanvasHistoryQueue],
     ["http canvas mutation scope", testHttpCanvasMutationScope],
+    ["standalone generation placeholder", testStandaloneGenerationPlaceholder],
     ["image job error contract", testImageJobErrorContract],
     ["generation task center contract", testGenerationTaskCenterContract],
     ["thread migration asset paths", testThreadMigrationAssetPaths],
@@ -1608,6 +1609,25 @@ async function testImageJobErrorContract() {
   if (!app.includes("appUpdateInfo?.canUpdate && appUpdateInfo?.updateAvailable")) {
     throw new Error("frontend update button should not POST an update while the updater is blocked.");
   }
+}
+
+async function testStandaloneGenerationPlaceholder() {
+  const projectDir = await fs.mkdtemp(path.join(os.tmpdir(), "codex-canvas-standalone-job-"));
+  const placeholder = await addJobPlaceholder(projectDir, {
+    id: "job_standalone_placeholder",
+    action: "generate",
+    status: "running",
+    name: "Generate",
+    x: 440,
+    y: 260,
+    width: 640,
+    height: 360
+  });
+  assertEqual(placeholder.sourceObjectId, null, "standalone generation placeholders should not require a source image");
+  assertEqual(placeholder.x, 440, "standalone generation placeholders should retain their requested x position");
+  assertEqual(placeholder.y, 260, "standalone generation placeholders should retain their requested y position");
+  assertEqual(placeholder.width, 640, "standalone generation placeholders should retain their requested width");
+  assertEqual(placeholder.height, 360, "standalone generation placeholders should retain their requested height");
 }
 
 async function testGenerationTaskCenterContract() {

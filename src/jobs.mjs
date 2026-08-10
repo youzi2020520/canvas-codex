@@ -62,19 +62,20 @@ export async function createImageJob(projectDir, input, options = {}) {
   for (const objectId of requestedObjectIds) {
     sourceObjects.push(await requireImageObject(projectDir, objectId, storeOptions));
   }
-  if (sourceObjects.length === 0) {
+  const isStandaloneGeneration = action === "generate" && sourceObjects.length === 0;
+  if (sourceObjects.length === 0 && !isStandaloneGeneration) {
     const error = new Error("Image jobs require at least one source image.");
     error.statusCode = 400;
     throw error;
   }
-  const object = sourceObjects[0];
+  const object = sourceObjects[0] || null;
   const sourceImagePaths = sourceObjects.map((item) => item.assetPath || item.sourcePath);
   if (sourceImagePaths.some((imagePath) => !imagePath)) {
     const error = new Error("Every source image must be a local canvas asset before running image jobs.");
     error.statusCode = 400;
     throw error;
   }
-  const imagePath = action === "compose" ? sourceImagePaths : sourceImagePaths[0];
+  const imagePath = action === "compose" ? sourceImagePaths : sourceImagePaths[0] || null;
 
   const quickEditAnnotations = action === "quick-edit"
     ? await collectQuickEditAnnotations(projectDir, object, storeOptions)
@@ -94,12 +95,12 @@ export async function createImageJob(projectDir, input, options = {}) {
   const outputDir = path.join(jobDir, "outputs");
   const logPath = path.join(jobDir, "codex.log");
   const startedAtMs = Date.now();
-  const sourceNaturalWidth = Number.isFinite(object.naturalWidth) && object.naturalWidth > 0
+  const sourceNaturalWidth = Number.isFinite(object?.naturalWidth) && object.naturalWidth > 0
     ? object.naturalWidth
-    : object.width;
-  const sourceNaturalHeight = Number.isFinite(object.naturalHeight) && object.naturalHeight > 0
+    : object?.width || input.width || 360;
+  const sourceNaturalHeight = Number.isFinite(object?.naturalHeight) && object.naturalHeight > 0
     ? object.naturalHeight
-    : object.height;
+    : object?.height || input.height || 360;
   const job = {
     id,
     action,
@@ -108,8 +109,8 @@ export async function createImageJob(projectDir, input, options = {}) {
     canvasId,
     status: "queued",
     stage: "queued",
-    objectId: object.id,
-    sourceObjectId: object.id,
+    objectId: object?.id || null,
+    sourceObjectId: object?.id || null,
     sourceObjectIds: sourceObjects.map((item) => item.id),
     sourceImagePath: sourceImagePaths[0],
     sourceAspectRatio: sourceNaturalWidth > 0 && sourceNaturalHeight > 0
@@ -152,9 +153,11 @@ export async function createImageJob(projectDir, input, options = {}) {
       action,
       status: "running",
       name: actionLabel(action),
-      sourceObjectId: object.id,
-      width: action === "generate" ? 360 : (expandOptions?.targetWidth || object.width),
-      height: action === "generate" ? 360 : (expandOptions?.targetHeight || object.height)
+      sourceObjectId: object?.id || null,
+      x: Number.isFinite(input.x) ? input.x : undefined,
+      y: Number.isFinite(input.y) ? input.y : undefined,
+      width: action === "generate" ? (Number.isFinite(input.width) ? input.width : 360) : (expandOptions?.targetWidth || object.width),
+      height: action === "generate" ? (Number.isFinite(input.height) ? input.height : 360) : (expandOptions?.targetHeight || object.height)
     }, storeOptions);
   } catch (error) {
     await operationLease.release();

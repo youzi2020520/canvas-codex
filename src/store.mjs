@@ -844,32 +844,39 @@ export async function addObject(projectDir, input, options = {}) {
 
 export async function addJobPlaceholder(projectDir, input, options = {}) {
   return mutateState(projectDir, options, (state) => {
-    const source = state.objects.find((object) => object.id === input.sourceObjectId);
-    if (!source) {
+    const source = typeof input.sourceObjectId === "string" && input.sourceObjectId
+      ? state.objects.find((object) => object.id === input.sourceObjectId)
+      : null;
+    if (input.sourceObjectId && !source) {
       const error = new Error(`Source canvas object not found: ${input.sourceObjectId || "(missing)"}`);
       error.statusCode = 404;
       throw error;
     }
 
-    const width = sanitizeDimension(Number.isFinite(input.width) ? input.width : source.width);
-    const height = sanitizeDimension(Number.isFinite(input.height) ? input.height : source.height);
-    const position = adjacentDerivedPosition(source);
+    const width = sanitizeDimension(Number.isFinite(input.width) ? input.width : source?.width || 360);
+    const height = sanitizeDimension(Number.isFinite(input.height) ? input.height : source?.height || 360);
+    const position = source
+      ? adjacentDerivedPosition(source)
+      : {
+        x: sanitizeCoordinate(Number.isFinite(input.x) ? input.x : 120 + (state.objects.length % 5) * 56),
+        y: sanitizeCoordinate(Number.isFinite(input.y) ? input.y : 120 + (state.objects.length % 7) * 44)
+      };
     const object = {
       id: input.id || `job_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`,
       type: "job",
       name: sanitizeString(input.name, "Working"),
       action: sanitizeString(input.action, "image-job", 80),
       status: sanitizeString(input.status, "running", 80),
-      sourceObjectId: source.id,
-      layoutMode: "canvas-row",
-      src: source.src || null,
-      assetPath: source.assetPath || null,
+      sourceObjectId: source?.id || null,
+      layoutMode: source ? "canvas-row" : "canvas-generate",
+      src: source?.src || null,
+      assetPath: source?.assetPath || null,
       x: position.x,
       y: position.y,
       width,
       height,
-      naturalWidth: source.naturalWidth || null,
-      naturalHeight: source.naturalHeight || null,
+      naturalWidth: source?.naturalWidth || null,
+      naturalHeight: source?.naturalHeight || null,
       createdAt: new Date().toISOString()
     };
 

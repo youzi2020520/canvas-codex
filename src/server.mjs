@@ -353,26 +353,14 @@ async function handleRequest(request, response, context) {
       ));
     }
 
-    const seedX = Number.isFinite(body.x) ? body.x - 73 : 47;
-    const seedY = Number.isFinite(body.y) ? body.y : 120;
-    const seed = await addImage(projectDir, {
-      dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4AWMAAQAABQABNtCI3QAAAABJRU5ErkJggg==",
-      name: `workflow-seed-${Date.now()}.png`,
-      width: 1,
-      height: 1,
-      x: seedX,
-      y: seedY,
-      allowDuplicate: true
-    }, storeOptionsFor(project));
-    await updateObject(projectDir, seed.id, {
-      hidden: true,
-      workflowSeed: true
-    }, storeOptionsFor(project));
     const job = await runMaintenanceSensitiveOperation(
       context.registry,
       () => createImageJob(projectDir, {
         action: "generate",
-        objectId: seed.id,
+        x: Number.isFinite(body.x) ? body.x : 120,
+        y: Number.isFinite(body.y) ? body.y : 120,
+        width: Number.isFinite(body.width) ? body.width : 360,
+        height: Number.isFinite(body.height) ? body.height : 360,
         prompt,
         taskKind: "generation"
       }, storeOptionsFor(project))
