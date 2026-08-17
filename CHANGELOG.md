@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/youzi2020520/canvas-codex/compare/v0.3.1...v0.4.0) (2026-08-17)
+
+
+### Features
+
+* **slides:** commit slides layout engine, PPTX export, skills and chart modules ([6666d01](https://github.com/youzi2020520/canvas-codex/commit/6666d01d5a9204f487aa336bea2bc1c582c9826c))
+
 ## [0.3.1](https://github.com/Xiangyu-CAS/codex-canvas/compare/v0.3.0...v0.3.1) (2026-07-10)
 
 
