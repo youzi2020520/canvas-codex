@@ -16,7 +16,10 @@ const defaultSinceMinutes = 120;
 const defaultPort = 43217;
 const maxPort = 65535;
 const canvasServerName = "codex-canvas";
-const canvasServerProtocolVersion = 1;
+// Bump this whenever the frontend starts depending on a new server-side object
+// or endpoint contract. `open` uses it to avoid reusing a stale background
+// server whose package version was not changed between development builds.
+const canvasServerProtocolVersion = 2;
 
 export async function main(args, context = {}) {
   const command = args[0] || "help";

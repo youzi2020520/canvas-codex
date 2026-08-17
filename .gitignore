@@ -20,3 +20,6 @@ venv/
 dist/
 build/
 coverage/
+
+# Local temporary files
+.tmp/

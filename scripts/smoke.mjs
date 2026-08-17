@@ -14,10 +14,25 @@ import { exportLayerGroupPsd } from "../src/psd-export.mjs";
 import { canvasIdForThread } from "../src/runtime.mjs";
 import { createOperationLease } from "../src/operation-leases.mjs";
 import { createServer as createAgentCanvasServer } from "../src/server.mjs";
+import { applyDeterministicLayout, SLIDE_ARCHETYPES, SLIDE_INTENTS, skillRouteForIntent, validatePostLayout, validatePreLayout } from "../src/slides-layout-engine.mjs";
 import { addImage, addJobPlaceholder, addObject, deleteObjects, markStaleJobPlaceholders, promptHistory, readState, reorderLayerGroupLayer, restoreObjects, searchObjects, setLayerGroupOrder, transformState, updateObject, updateObjects, updateSelection, updateViewport, versionGroups } from "../src/store.mjs";
 import { appUpdateStatus, clearPublishedReleaseCacheForTest, updateApp } from "../src/updater.mjs";
 
 const execFileAsync = promisify(execFile);
+
+function testSlideIntentAndDeterministicLayout() {
+  if (SLIDE_INTENTS.length !== 11 || SLIDE_ARCHETYPES.length !== 14) throw new Error("slide architecture should expose the complete intent and archetype catalog.");
+  const frame = applyDeterministicLayout({
+    title:"Revenue trend", intent:"chart", archetype:"split-40-60", elements:[
+      { id:"title", type:"text", slot:"title", text:"Revenue trend" },
+      { id:"chart", type:"chart", slot:"visual", chart:{ type:"line", categories:["Q1", "Q2"], series:[{ name:"Revenue", data:[1, 2] }] } }
+    ]
+  });
+  if (frame.skillRoute !== "echarts" || frame.layoutSpec.safeArea !== 64 || frame.elements[1].x !== 434 || frame.elements[1].width !== 526) throw new Error("chart pages should route to ECharts and resolve fixed grid geometry.");
+  validatePreLayout(frame);
+  validatePostLayout(frame);
+  if (skillRouteForIntent("architecture") !== "svg-diagram" || skillRouteForIntent("cover") !== "art-direction-imagegen" || skillRouteForIntent("dashboard") !== "data-viz") throw new Error("specialist slide routes should remain stable.");
+}
 
 const pngOne = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const stableFrontendImageActions = ["quick-edit", "remove-bg", "expand", "edit-text", "edit-elements"];
@@ -27,6 +42,7 @@ let smokeProjectRegistryPath = null;
 async function main() {
   const results = [];
   for (const [name, test] of [
+    ["slide intent and deterministic layout", testSlideIntentAndDeterministicLayout],
     ["store concurrency", testStoreConcurrency],
     ["cross process store locking", testCrossProcessStoreLocking],
     ["delete undo restore", testDeleteUndoRestore],
@@ -172,6 +188,14 @@ async function testObjectPatchSanitization() {
   });
   assertEqual(ungrouped.layerGroupId, null, "updateObject should clear canvas group ids");
   assertEqual(ungrouped.layerGroupIndex, null, "updateObject should clear canvas group positions");
+  const slidePage = await updateObject(projectDir, image.id, {
+    slideDeckId: "slides_test",
+    slideOrder: 3.8
+  });
+  assertEqual(slidePage.slideDeckId, "slides_test", "updateObject should persist Slides page membership");
+  assertEqual(slidePage.slideOrder, 4, "updateObject should normalize Slides page order");
+  const detachedSlidePage = await updateObject(projectDir, image.id, { slideDeckId: null, slideOrder: 0 });
+  assertEqual(detachedSlidePage.slideDeckId, null, "updateObject should clear Slides page membership");
 }
 
 async function testObjectInputSanitization() {
@@ -215,6 +239,45 @@ async function testObjectInputSanitization() {
   assertEqual(patched.height, 1, "updateObject should clamp patched object height to a visible minimum");
   assertEqual(patched.fontSize, 160, "updateObject should cap oversized font size");
   assertEqual(patched.durationMs, 0, "updateObject should clamp negative job durations");
+
+  const htmlPage = await addObject(projectDir, {
+    type: "html",
+    html: "<!doctype html><html><body><h1>Frame</h1></body></html>",
+    elements: [{
+      id: "heading-1", type: "text", tag: "h1", x: 48, y: 40, width: 400, height: 72,
+      text: "Frame", style: { fontSize: "56px", color: "rgb(17, 24, 39)" },
+      layout: { mode: "free" }
+    }]
+  });
+  assertEqual(htmlPage.elements[0].id, "heading-1", "HTML pages should persist stable structured slide element ids");
+  assertEqual(htmlPage.elements[0].style.fontSize, "56px", "HTML pages should persist editable element typography");
+  const structuredPatch = await updateObject(projectDir, htmlPage.id, {
+    elements: [{ id: "layout-1", type: "group", tag: "section", x: 0, y: 0, width: 1024, height: 576, layout: { mode: "row", gap: "24px" } }]
+  });
+  assertEqual(structuredPatch.elements[0].layout.mode, "row", "HTML page patches should persist auto-layout metadata");
+  assertEqual(structuredPatch.elements[0].layout.gap, "24px", "HTML page patches should persist auto-layout spacing");
+
+  const structuredSlide = await addObject(projectDir, {
+    type: "slide-frame",
+    name: "Structured Cover",
+    background: "#071827",
+    templateId: "cover",
+    elements: [{
+      id: "cover-stack", type: "group", x: 64, y: 72, width: 720, height: 320,
+      layout: { mode: "column", gap: "18px", padding: "24px", align: "stretch", justify: "center" }
+    }, {
+      id: "cover-title", type: "text", parentId: "cover-stack", width: 640, height: 96,
+      text: "Structured Frame", style: { color: "#ffffff", fontSize: "56px", fontWeight: "700" }
+    }]
+  });
+  assertEqual(structuredSlide.width, 1024, "structured slides should use the canonical 1024px frame width");
+  assertEqual(structuredSlide.height, 576, "structured slides should use the canonical 576px frame height");
+  assertEqual(structuredSlide.templateId, "cover", "structured slides should persist their page template id");
+  assertEqual(structuredSlide.elements[0].layout.mode, "column", "structured slides should persist auto-layout containers");
+  assertEqual(structuredSlide.elements[1].parentId, "cover-stack", "structured slides should persist element hierarchy");
+  const resizedStructuredSlide = await updateObject(projectDir, structuredSlide.id, { width: 1600, height: 900 });
+  assertEqual(resizedStructuredSlide.width, 1024, "structured slide canvas hit boxes should keep the canonical width");
+  assertEqual(resizedStructuredSlide.height, 576, "structured slide canvas hit boxes should keep the canonical height");
 
   const drawing = await addObject(projectDir, {
     type: "drawing",
@@ -1153,7 +1216,7 @@ async function testAppUpdateRequestSecurity() {
     const registryResponse = await fetch(`${base}api/projects`);
     const registry = await registryResponse.json();
     assertEqual(registry.server?.name, "codex-canvas", "server metadata should identify the shutdown target");
-    assertEqual(registry.server?.protocolVersion, 1, "server metadata should expose the restart handshake version");
+    assertEqual(registry.server?.protocolVersion, 2, "server metadata should expose the current object API handshake version");
     if (!registry.server?.instanceId) throw new Error("server metadata should expose a per-process instance id");
 
     const staleShutdown = await fetch(`${base}api/shutdown`, {
@@ -1301,6 +1364,8 @@ async function testFrontendActionContract() {
   const app = await fs.readFile(path.join(process.cwd(), "public", "app.js"), "utf8");
   const workflowStudio = await fs.readFile(path.join(process.cwd(), "public", "workflow-studio.js"), "utf8");
   const styles = await fs.readFile(path.join(process.cwd(), "public", "styles.css"), "utf8");
+  const slidesJobs = await fs.readFile(path.join(process.cwd(), "src", "slides-jobs.mjs"), "utf8");
+  const store = await fs.readFile(path.join(process.cwd(), "src", "store.mjs"), "utf8");
 
   for (const requiredWorkflowFeature of [
     "workflowDataTypes",
@@ -1492,8 +1557,157 @@ async function testFrontendActionContract() {
   if (!app.includes('const defaultCanvasTool = "select"') || !app.includes('import { CanvasHistory } from "./canvas-history.js"')) {
     throw new Error("frontend should initialize the scoped canvas history with Select as the default tool.");
   }
+  if (
+    app.includes("objectLayer.replaceChildren();")
+    || !app.includes("nextStateSignature === lastLoadedStateSignature")
+    || !app.includes("canvasObjectRenderSignatures.get(object.id) === renderSignature")
+    || !app.includes("updateCanvasObjectGeometry(existingElement, object)")
+    || !app.includes("updateCanvasObjectSelectionChrome(existingElement, object")
+    || !app.includes("placeCanvasObjectElement(existingElement, previousCanvasObjectElement)")
+    || !app.includes("pointerDistance < 4")
+  ) {
+    throw new Error("canvas refreshes should skip unchanged server state and preserve unchanged object DOM nodes to avoid visible flashing.");
+  }
   if (!/data-view-action="upload"[\s\S]*?data-tool="annotation"[\s\S]*?data-tool="pencil"/.test(html)) {
     throw new Error("frontend should place the standalone Arrow Note tool immediately before Pencil in the dock.");
+  }
+  if (
+    html.includes('id="slidesCleanBar"')
+    || html.includes('data-slides-clean-action="exit"')
+    || !app.includes("function updateSlidesCleanMode(object)")
+    || !app.includes("function slidesForDeck(deck)")
+    || !app.includes("syncSlideDeckMembershipAfterDrop(object)")
+    || !app.includes("if (previousDeck && !targetDeck) return;")
+    || !app.includes("function updateAddSelectedSlidesButton(button, deck")
+    || app.includes('className = "slides-deck-generate-item"')
+    || !app.includes("renderSlidesGenerator(deck, { append: slides.length > 0 })")
+    || !app.includes('fetch(apiPath("/api/slides/jobs")')
+    || !app.includes('action:"generate-slides"')
+    || !app.includes('action:"plan-slides"')
+    || !app.includes("function renderSlidesGenerator(deck")
+    || !app.includes("function createSlideFramePage(frame)")
+    || !app.includes("function openSlideFrameEditor(object)")
+    || !app.includes('zoomControls.className = "slide-frame-editor-zoom"')
+    || !app.includes("Math.max(0.5, Math.min(1.6")
+    || !app.includes('if (!event.altKey) return;')
+    || !app.includes("window.requestAnimationFrame(resetEditorView)")
+    || !app.includes("applyEditorZoom(1)")
+    || !app.includes('event.button === 2 || (event.button === 0 && spacePanReady)')
+    || !app.includes('stage.addEventListener("contextmenu", (event) => event.preventDefault())')
+    || !app.includes('model.positionMode = "free"')
+    || !app.includes("target.offsetLeft")
+    || !app.includes('data-slide-editor-guide')
+    || !app.includes("const nearestSnap = (moving, targets)")
+    || !app.includes('color.type = "color"')
+    || !app.includes('handle.dataset.resize = direction')
+    || !app.includes('for (const direction of ["nw", "ne", "se", "sw"])')
+    || !app.includes('stage.append(surface, format)')
+    || !app.includes('shapeColor.onchange = () => applyStyle')
+    || !app.includes('slide.type === "slide-frame"')
+    || !app.includes('["image", "html", "slide-frame"]')
+    || !styles.includes(".slides-frame-viewport")
+    || !styles.includes(".slide-frame-editor-selection")
+    || !styles.includes(".slide-frame-editor-guide")
+    || !styles.includes(".slide-frame-editor>main.is-pan-ready")
+    || !styles.includes(".slides-deck-thumbnail>img")
+    || !styles.includes(".slides-presentation-thumb-shell>img")
+    || !styles.includes(".slides-presentation-slide>img")
+    || styles.includes(".slides-presentation-slide img")
+    || !html.includes('data-action="edit-page"')
+    || !app.includes("function openHtmlPageEditor(object)")
+    || !app.includes("function htmlEditorDocument(source, token)")
+    || !app.includes("function htmlEditorGuidesRuntime()")
+    || !app.includes("fitEditorToStage")
+    || !app.includes('zoomLabel.dataset.htmlEditorAction = "zoom-fit"')
+    || !app.includes("dataset.slideElementId")
+    || !app.includes("elements = Array.isArray(event.data.elements)")
+    || !styles.includes(".html-page-editor-canvas")
+    || !app.includes('viewport.className = "slides-html-viewport"')
+    || !app.includes('Math.min(width / 1024, height / 576)')
+    || !styles.includes('.slides-html-viewport iframe')
+    || !styles.includes('width:1024px!important;height:576px!important')
+    || !styles.includes(".slides-workflow-steps")
+    || !styles.includes(".slides-outline-list")
+    || !styles.includes(".slides-mention-menu")
+    || !app.includes("recommendedPresetIds")
+    || !app.includes("slides-selected-presets")
+    || !app.includes("slidesGeneratorDraftByDeck")
+    || app.includes("草稿已保存")
+    || !app.includes("openSlidesGenerationHistory")
+    || !app.includes("saveSlidesGenerationHistory")
+    || !styles.includes(".slides-deck-history")
+    || !app.includes("renderPlanning")
+    || !app.includes("activeJobId")
+    || !styles.includes(".slides-planning-state")
+    || !app.includes("generationJobId")
+    || !app.includes("renderGeneration")
+    || app.includes("function slideGenerationPageHtml(")
+    || !app.includes('class="slides-generator-status" role="status" aria-live="polite"')
+    || !app.includes("!selectedIds.size && !selectedId && slidesWorkspaceOpen && activeSlidesDeckId")
+    || !app.includes("async function clearSlidesDeck(deck)")
+    || !styles.includes(".slides-deck-clear")
+    || !app.includes("async function downloadSlidesPptx(deck, button)")
+    || !styles.includes(".slides-deck-export")
+    || styles.includes(".slides-deck-generate-item")
+    || !app.includes('if (object?.type === "slides") return { width:1280, height:900 };')
+    || !app.includes('width: 1280, height: 900')
+    || !app.includes('syncDraft({ generationJobId:null, activeJobId:null, phase:"brief"')
+    || !app.includes('生成已取消，已返回输入首页')
+    || !slidesJobs.includes('function slidesJobTimeout(job, revision = false)')
+    || !slidesJobs.includes('stableOutputTicks >= 3')
+    || !slidesJobs.includes('has clipped text in element')
+    || !slidesJobs.includes('has an unrelated panel')
+    || !app.includes('页面草稿已生成，正在结束生成进程并准备质量检查')
+    || !app.includes('"草稿就绪"')
+    || !slidesJobs.includes('imagePath:job.referencePaths')
+    || !slidesJobs.includes('function visualAssetBudget(pageCount)')
+    || !slidesJobs.includes('readGeneratedSlidesWithQualityRetry(job)')
+    || !slidesJobs.includes('function validateDeckVisualVariety(slides)')
+    || !slidesJobs.includes('Binding deck art direction')
+    || !slidesJobs.includes('validateResolvedVisualDeck(resolvedSlides)')
+    || !slidesJobs.includes('const symbolOnlyDecoration = text.length > 0')
+    || !slidesJobs.includes('frame.elements = elements.filter((element) => !removableGlyphIds.has')
+    || !slidesJobs.includes('must use an intentional mask or substantial corner treatment')
+    || !app.includes('continueToOutlineAfterPlanning')
+    || !app.includes('Replan the complete narrative as exactly')
+    || !app.includes('const changedKeys = Object.keys(currentSelections)')
+    || !app.includes('try { await replanOutlineForCount(nextCount, changedKeys); }')
+    || !app.includes('changedKeys.length === 1 && changedKeys[0] === "length"')
+    || !app.includes('data-requirements-skip')
+    || !app.includes('idleLabel:language === "zh" ? "始终为我预填充"')
+    || !app.includes('class="slides-footer-back" data-outline-action="back"')
+    || !app.includes('slides-outline-add-option')
+    || !app.includes('function requestEmbeddedWebPage()')
+    || !app.includes('function createSlidesAddMenu(deck)')
+    || !app.includes('type:"web-embed"')
+    || !styles.includes('.embed-web-dialog-backdrop')
+    || !styles.includes('.slide-frame-web-embed iframe')
+    || !store.includes('"web-embed"')
+    || !app.includes('target?.focus(); target?.select();')
+    || !app.includes('slidesIcon("return")')
+    || !app.includes('data-slides-pause')
+    || !app.includes('slides-generation-live-stage')
+    || !app.includes('data-slides-follow')
+    || !slidesJobs.includes('previewSlides: job.previewSlides')
+    || !styles.includes('.slides-generation-live-thumb')
+    || !app.includes('action === "pause" ? "resume" : "pause"')
+    || !slidesJobs.includes('export function pauseSlidesJob')
+    || !slidesJobs.includes('async function waitWhilePaused')
+    || !styles.includes('.slides-generation-actions')
+    || !styles.includes('.slides-generator.is-outline .slides-footer-skip { min-width:92px!important;height:48px!important')
+    || !styles.includes('.slides-generator.is-requirements .slides-outline-confirm>b')
+    || !styles.includes('border:1.5px solid #a3a3a3')
+    || !app.includes('由系统自动规划最佳篇幅')
+    || !app.includes('const selectedLength = /^\\d+$/.test')
+    || !app.includes('精简版（8–10 页，突出核心亮点）')
+    || !app.includes('标准版（12–15 页，展示 1–2 个完整项目）')
+    || !app.includes('详尽版（15–20 页，展示多个深度项目）')
+    || app.includes('const targetSlidesDeckId = type === "html" ? activeSlidesDeckId : null')
+    || html.includes('data-slides-clean-action="html"')
+    || !styles.includes(".canvas-object.html-object .html-slide-content iframe { pointer-events:none; }")
+    || styles.includes(".slides-clean-bar")
+  ) {
+    throw new Error("Slides should keep controls inside the deck, preserve stable page membership, and omit the duplicate floating toolbar.");
   }
   if (!/@media\s*\(max-width:\s*480px\)[\s\S]*?\.selection-toolbar button span\s*\{\s*display:\s*none;\s*\}/.test(styles)) {
     throw new Error("selection toolbar labels should only collapse at phone-sized viewport widths.");

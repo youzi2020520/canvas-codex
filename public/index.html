@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Codex-Canvas</title>
     <link rel="icon" href="/icon.png" type="image/png" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=87" />
   </head>
   <body>
     <div class="app-shell">
@@ -124,6 +124,12 @@
               <p data-workflow-copy="help">Drag from an output dot to a matching input dot. Run a Generate node to create an image.</p>
             </aside>
             <div id="selectionToolbar" class="selection-toolbar" hidden>
+              <button data-action="edit-page" data-tooltip="Edit page" title="Edit page" aria-label="Edit page" hidden>
+                <svg class="context-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                </svg>
+                <span>Edit page</span>
+              </button>
               <button data-action="quick-edit" data-tooltip="Quick Edit" title="Quick Edit" aria-label="Quick Edit">
                 <svg class="context-icon" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72" />
@@ -535,8 +541,7 @@
                 <path d="M22 19l-3 -3l-3 3"></path>
               </svg>
             </button>
-            <button title="AI Slides" aria-label="AI Slides" data-tooltip="AI Slides" data-view-action="add-slides"><svg class="dock-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 8h10M7 12h7M7 16h4"></path></svg></button>
-            <button title="HTML page" aria-label="HTML page" data-tooltip="HTML page" data-view-action="add-html"><svg class="dock-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 9-3 3 3 3M16 9l3 3-3 3M14 5l-4 14"></path></svg></button>
+            <button title="添加幻灯片" aria-label="添加幻灯片" data-tooltip="添加幻灯片" data-view-action="add-slides"><svg class="dock-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 8h10M7 12h7M7 16h4"></path></svg></button>
             <!-- Lucide message-square-plus; matches the Quick Edit Arrow Note tool. -->
             <button title="Arrow note" aria-label="Arrow note" data-tooltip="Arrow note" data-tool="annotation">
               <svg class="dock-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -586,7 +591,7 @@
     </div>
 
     <div id="toast" class="toast" hidden></div>
-    <script src="/app.js?v=24" type="module"></script>
+    <script src="/app.js?v=88" type="module"></script>
     <script src="/workflow-studio.js" type="module"></script>
   </body>
 </html>

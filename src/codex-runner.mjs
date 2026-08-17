@@ -95,6 +95,60 @@ export async function startCodexImageJob({ projectDir, action, imagePath, output
   return { child, done, executable, prompt };
 }
 
+export async function startCodexSlidesJob({ projectDir, outputDir, logPath, prompt, imagePaths = [] }) {
+  const executable = await resolveCodexExecutable();
+  await fs.mkdir(outputDir, { recursive: true });
+  await fs.mkdir(path.dirname(logPath), { recursive: true });
+  const model = process.env.CODEX_CANVAS_CODEX_MODEL;
+  const requestedReasoningEffort = process.env.CODEX_CANVAS_SLIDES_REASONING_EFFORT
+    || process.env.CODEX_CANVAS_CODEX_REASONING_EFFORT
+    || "medium";
+  const reasoningEffort = requestedReasoningEffort === "minimal" ? "low" : requestedReasoningEffort;
+  const args = ["exec", "--ephemeral"];
+  if (!model) args.push("--ignore-user-config");
+  if (model) args.push("--model", model);
+  args.push(
+    "--skip-git-repo-check",
+    "--color", "never",
+    "-c", `model_reasoning_effort=${JSON.stringify(reasoningEffort)}`,
+    "--cd", projectDir,
+    "--sandbox", "workspace-write"
+  );
+  for (const imagePath of imagePaths.filter(Boolean)) args.push("--image", imagePath);
+  args.push("--", "-");
+
+  const child = spawnCodexProcess(executable, args, {
+    cwd: projectDir,
+    env: { ...process.env, CODEX_CANVAS_JOB_OUTPUT_DIR: outputDir, NO_COLOR: "1" },
+    stdio: ["pipe", "pipe", "pipe"],
+    windowsHide: true
+  });
+  child.stdin.on("error", () => {});
+  child.stdin.end(prompt);
+  const done = new Promise((resolve, reject) => {
+    const output = [];
+    const collect = (chunk) => {
+      const text = chunk.toString();
+      output.push(text);
+      fs.appendFile(logPath, text).catch(() => {});
+    };
+    child.stdout.on("data", collect);
+    child.stderr.on("data", collect);
+    child.once("error", reject);
+    child.once("close", (code, signal) => {
+      const log = output.join("");
+      if (code === 0) return resolve({ executable, code, signal, log });
+      const detail = summarizeCodexFailure(log);
+      const error = new Error(detail ? `Codex slides job failed: ${detail}` : `Codex slides job failed with ${signal || `exit code ${code}`}.`);
+      error.code = code;
+      error.signal = signal;
+      error.log = log;
+      reject(error);
+    });
+  });
+  return { child, done, executable, prompt };
+}
+
 export function spawnCodexProcess(executable, args, options = {}) {
   return crossSpawn(executable, args, {
     ...options,

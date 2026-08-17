@@ -825,7 +825,7 @@ async function removeDuplicateAsset(asset, duplicate) {
 
 export async function addObject(projectDir, input, options = {}) {
   const type = typeof input.type === "string" ? input.type : "";
-  if (!["drawing", "text", "annotation", "html", "slides"].includes(type)) {
+  if (!["drawing", "text", "annotation", "html", "slide-frame", "slides"].includes(type)) {
     const error = new Error("add_object requires a supported canvas object type");
     error.statusCode = 400;
     throw error;
@@ -955,6 +955,83 @@ function sanitizeString(value, fallback = "", limit = 300, trim = true) {
   return (normalized || fallback).slice(0, limit);
 }
 
+function sanitizeSlideElements(value) {
+  if (!Array.isArray(value)) return [];
+  const validTypes = new Set(["text", "image", "svg", "chart", "shape", "group", "media", "table", "web-embed"]);
+  const validLayoutModes = new Set(["free", "row", "column", "grid"]);
+  return value.slice(0, 300).map((element, index) => {
+    if (!element || typeof element !== "object") return null;
+    const type = validTypes.has(element.type) ? element.type : "shape";
+    const style = element.style && typeof element.style === "object" ? element.style : {};
+    const layout = element.layout && typeof element.layout === "object" ? element.layout : {};
+    const normalized = {
+      id: sanitizeString(element.id, `element-${index + 1}`, 120),
+      type,
+      tag: sanitizeString(element.tag, type === "text" ? "div" : type === "image" ? "img" : "div", 30).toLowerCase(),
+      parentId: typeof element.parentId === "string" ? sanitizeString(element.parentId, "", 120) : null,
+      x: sanitizeCoordinate(element.x),
+      y: sanitizeCoordinate(element.y),
+      width: sanitizeDimension(element.width, 1),
+      height: sanitizeDimension(element.height, 1),
+      text: sanitizeString(element.text, "", 10000, false),
+      src: type === "web-embed"
+        ? (/^https?:\/\//i.test(String(element.src || "").trim()) ? sanitizeString(element.src, "", 2048) : "")
+        : sanitizeString(element.src, "", 250000, false),
+      locked: element.locked === true,
+      aiLocked: element.aiLocked === true,
+      positionMode: element.positionMode === "free" ? "free" : "",
+      style: {
+        color: sanitizeString(style.color, "", 80),
+        background: sanitizeString(style.background, "", 300),
+        fontFamily: sanitizeString(style.fontFamily, "", 120),
+        fontSize: sanitizeString(style.fontSize, "", 40),
+        fontWeight: sanitizeString(style.fontWeight, "", 40),
+        lineHeight: sanitizeString(style.lineHeight, "", 40),
+        textAlign: sanitizeString(style.textAlign, "", 20),
+        borderRadius: sanitizeString(style.borderRadius, "", 40),
+        opacity: sanitizeString(style.opacity, "", 20),
+        transform: sanitizeString(style.transform, "", 300),
+        objectFit: ["cover", "contain", "fill", "none", "scale-down"].includes(style.objectFit) ? style.objectFit : "",
+        objectPosition: sanitizeString(style.objectPosition, "", 80),
+        clipPath: sanitizeString(style.clipPath, "", 300),
+        boxShadow: sanitizeString(style.boxShadow, "", 300),
+        border: sanitizeString(style.border, "", 200),
+        mixBlendMode: sanitizeString(style.mixBlendMode, "", 40),
+        filter: sanitizeString(style.filter, "", 300)
+      },
+      layout: {
+        mode: validLayoutModes.has(layout.mode) ? layout.mode : "free",
+        gap: sanitizeString(layout.gap, "", 40),
+        padding: sanitizeString(layout.padding, "", 100),
+        align: sanitizeString(layout.align, "", 40),
+        justify: sanitizeString(layout.justify, "", 40),
+        columns: sanitizeString(layout.columns, "", 120)
+      }
+    };
+    if (type === "chart") normalized.chart = sanitizeSlideChart(element.chart);
+    return normalized;
+  }).filter(Boolean);
+}
+
+function sanitizeSlideChart(value) {
+  const chart = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const type = ["bar", "line", "scatter", "pie"].includes(chart.type) ? chart.type : "bar";
+  const categories = Array.isArray(chart.categories) ? chart.categories.slice(0, 50).map((item) => sanitizeString(String(item), "—", 80)) : [];
+  const series = Array.isArray(chart.series) ? chart.series.slice(0, 8).map((item, index) => ({
+    name:sanitizeString(item?.name, `Series ${index + 1}`, 80),
+    data:Array.isArray(item?.data) ? item.data.slice(0, 50).map((value) => Number.isFinite(Number(value)) ? Math.max(-1e12, Math.min(1e12, Number(value))) : 0) : []
+  })) : [];
+  return {
+    type,
+    title:sanitizeString(chart.title, "", 160),
+    unit:sanitizeString(chart.unit, "", 40),
+    categories,
+    series,
+    colors:Array.isArray(chart.colors) ? chart.colors.filter((item) => /^#[0-9a-f]{6}$/i.test(String(item))).slice(0, 8) : [],
+    accessibilitySummary:sanitizeString(chart.accessibilitySummary, "Chart", 500)
+  };
+}
+
 function normalizePersistedObject(object, context = {}) {
   if (!object || typeof object !== "object") return null;
   const id = sanitizeString(object.id, "", 200);
@@ -993,6 +1070,24 @@ function normalizePersistedObject(object, context = {}) {
     normalized.strokeWidth = sanitizeStrokeWidth(object.strokeWidth);
   }
   sanitizeAnnotationMetadata(normalized, object);
+  if (typeof object.slideDeckId === "string" && object.slideDeckId.trim()) {
+    normalized.slideDeckId = sanitizeString(object.slideDeckId, "", 200);
+    normalized.slideOrder = Number.isFinite(object.slideOrder) ? Math.max(0, Math.round(object.slideOrder)) : 0;
+  } else {
+    delete normalized.slideDeckId;
+    delete normalized.slideOrder;
+  }
+  if (type === "html") normalized.elements = sanitizeSlideElements(object.elements);
+  if (type === "slide-frame") {
+    // A Frame has one canonical page geometry. Older persisted objects could
+    // retain image/HTML dimensions while their rendered page stayed 1024×576,
+    // leaving an invisible drag hit area outside the visible page.
+    normalized.width = 1024;
+    normalized.height = 576;
+    normalized.elements = sanitizeSlideElements(object.elements);
+    normalized.background = sanitizeString(object.background, "#ffffff", 300);
+    normalized.templateId = sanitizeString(object.templateId, "freeform", 120);
+  }
   if (type === "annotation") {
     normalized.annotationKind = sanitizeString(object.annotationKind, "arrow-note", 80);
     normalized.label = sanitizeString(object.label, "", 2000, false);
@@ -1340,7 +1435,7 @@ export async function updateObjects(projectDir, updates, options = {}) {
 }
 
 function objectWithPatch(object, patch) {
-  return {
+  const next = {
     ...object,
     ...sanitizeObjectPatch(patch),
     id: object.id,
@@ -1350,6 +1445,13 @@ function objectWithPatch(object, patch) {
     sourcePath: object.sourcePath,
     createdAt: object.createdAt
   };
+  // Frame resizing belongs to its internal editor. Keep the canvas object's
+  // outer hit box aligned with the fixed 16:9 page rendered inside it.
+  if (next.type === "slide-frame") {
+    next.width = 1024;
+    next.height = 576;
+  }
+  return next;
 }
 
 function sanitizeObjectPatch(patch = {}) {
@@ -1382,15 +1484,17 @@ function sanitizeObjectPatch(patch = {}) {
   ]) {
     if (Number.isFinite(patch[key])) next[key] = sanitizeDimension(patch[key]);
   }
-  for (const key of ["name", "text", "label", "color", "stroke", "status", "error", "layoutMode", "sourceObjectId", "jobId", "annotationTargetId", "annotationSessionId", "annotationRole", "annotationKind", "layerGroupId", "layerGroupName", "layerGroupSourceObjectId", "layerGroupKind", "layerGroupBackgroundStatus", "prompt", "imagegenPrompt", "fontFamily", "fontWeight", "fontStyle", "textDecoration", "textAlign", "html"]) {
-    if (patch[key] === null && key.startsWith("layerGroup")) {
+  for (const key of ["name", "text", "label", "color", "stroke", "status", "error", "layoutMode", "sourceObjectId", "jobId", "annotationTargetId", "annotationSessionId", "annotationRole", "annotationKind", "layerGroupId", "layerGroupName", "layerGroupSourceObjectId", "layerGroupKind", "layerGroupBackgroundStatus", "slideDeckId", "prompt", "imagegenPrompt", "fontFamily", "fontWeight", "fontStyle", "textDecoration", "textAlign", "html", "background", "templateId"]) {
+    if (patch[key] === null && (key.startsWith("layerGroup") || key === "slideDeckId")) {
       next[key] = null;
     } else if (typeof patch[key] === "string") {
-      const limit = key === "html" ? 40000 : key === "text" || key === "label" ? 2000 : key === "prompt" ? 4000 : key === "imagegenPrompt" ? 20000 : 300;
+      const limit = key === "html" ? 500000 : key === "text" || key === "label" ? 2000 : key === "prompt" ? 4000 : key === "imagegenPrompt" ? 20000 : 300;
       next[key] = patch[key].slice(0, limit);
     }
   }
   if (Array.isArray(patch.slideIds)) next.slideIds = patch.slideIds.map(String).slice(0, 100);
+  if (Array.isArray(patch.elements)) next.elements = sanitizeSlideElements(patch.elements);
+  if (Number.isFinite(patch.slideOrder)) next.slideOrder = Math.max(0, Math.round(patch.slideOrder));
   if (typeof patch.layerGroupLocked === "boolean") next.layerGroupLocked = patch.layerGroupLocked;
   if (typeof patch.hidden === "boolean") next.hidden = patch.hidden;
   if (typeof patch.locked === "boolean") next.locked = patch.locked;
@@ -1611,7 +1715,7 @@ function normalizeObject(input) {
   const base = {
     id: `${type}_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`,
     type,
-    name: sanitizeString(input.name, type === "slides" ? "AI Slides" : type === "html" ? "HTML page" : type === "text" ? "Text" : type === "annotation" ? "Annotation" : "Drawing"),
+    name: sanitizeString(input.name, type === "slides" ? "AI Slides" : type === "slide-frame" ? "Structured slide" : type === "html" ? "HTML page" : type === "text" ? "Text" : type === "annotation" ? "Annotation" : "Drawing"),
     x: Number.isFinite(input.x) ? sanitizeCoordinate(input.x) : 120,
     y: Number.isFinite(input.y) ? sanitizeCoordinate(input.y) : 120,
     width: Number.isFinite(input.width) ? sanitizeDimension(input.width, 220) : 220,
@@ -1646,7 +1750,18 @@ function normalizeObject(input) {
   }
 
   if (type === "html") {
-    return { ...base, html: sanitizeString(input.html, "<main style=\"display:grid;place-items:center;height:100%;font:700 42px Inter,sans-serif;background:#171a24;color:white\">HTML page</main>", 40000, false) };
+    return { ...base, html: sanitizeString(input.html, "<main style=\"display:grid;place-items:center;height:100%;font:700 42px Inter,sans-serif;background:#171a24;color:white\">HTML page</main>", 500000, false), elements: sanitizeSlideElements(input.elements) };
+  }
+
+  if (type === "slide-frame") {
+    return {
+      ...base,
+      width: 1024,
+      height: 576,
+      background: sanitizeString(input.background, "#ffffff", 300),
+      templateId: sanitizeString(input.templateId, "freeform", 120),
+      elements: sanitizeSlideElements(input.elements)
+    };
   }
 
   if (type === "slides") {

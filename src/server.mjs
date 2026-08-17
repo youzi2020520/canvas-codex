@@ -13,6 +13,9 @@ import { canvasIdForThread, normalizeThreadId } from "./runtime.mjs";
 import { appUpdateStatus, updateApp } from "./updater.mjs";
 import { APP_VERSION } from "./version.mjs";
 import { exportWorkflowImage } from "./workflow-export.mjs";
+import { exportSlidesPptx } from "./pptx-export.mjs";
+import { cancelSlidesJob, createSlidesJob, getSlidesJob, pauseSlidesJob, resumeSlidesJob } from "./slides-jobs.mjs";
+import { renderSlideChart } from "./slide-charts.mjs";
 
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
@@ -292,6 +295,17 @@ async function handleRequest(request, response, context) {
     });
   }
 
+  const slidesPptxMatch = /^\/api\/slides\/([^/]+)\/pptx$/.exec(pathname);
+  if (request.method === "GET" && slidesPptxMatch) {
+    const exported = await exportSlidesPptx(projectDir, decodeURIComponent(slidesPptxMatch[1]), storeOptionsFor(project));
+    return sendBinary(response, 200, exported.buffer, {
+      "content-type": exported.contentType,
+      "content-disposition": `attachment; filename="${headerSafeFilename(exported.filename)}"`,
+      "cache-control": "no-store",
+      "referrer-policy": "no-referrer"
+    });
+  }
+
   if (request.method === "GET" && pathname === "/api/chat-binding") {
     return sendJson(response, 200, {
       threadId: project.chatThreadId || null,
@@ -398,6 +412,33 @@ async function handleRequest(request, response, context) {
       context.registry,
       () => createImageJob(projectDir, body, storeOptionsFor(project))
     ));
+  }
+
+  if (request.method === "POST" && pathname === "/api/slides/jobs") {
+    const body = await readJson(request, context.registry);
+    return sendJson(response, 202, await runMaintenanceSensitiveOperation(
+      context.registry,
+      () => createSlidesJob(projectDir, body, storeOptionsFor(project))
+    ));
+  }
+
+  if (request.method === "POST" && pathname === "/api/slides/charts/render") {
+    const body = await readJson(request, context.registry);
+    return sendJson(response, 200, renderSlideChart(body?.chart, { width:body?.width, height:body?.height }));
+  }
+
+  const slidesJobMatch = /^\/api\/slides\/jobs\/([^/]+)$/.exec(pathname);
+  if (request.method === "GET" && slidesJobMatch) {
+    return sendJson(response, 200, getSlidesJob(slidesJobMatch[1], jobScopeFor(project)));
+  }
+  if (request.method === "DELETE" && slidesJobMatch) {
+    return sendJson(response, 200, await cancelSlidesJob(projectDir, slidesJobMatch[1], jobScopeFor(project)));
+  }
+  if (request.method === "PATCH" && slidesJobMatch) {
+    const body = await readJson(request, context.registry);
+    if (body.action === "pause") return sendJson(response, 200, pauseSlidesJob(projectDir, slidesJobMatch[1], jobScopeFor(project)));
+    if (body.action === "resume") return sendJson(response, 200, resumeSlidesJob(projectDir, slidesJobMatch[1], jobScopeFor(project)));
+    return sendJson(response, 400, { error:"Unsupported slides job action." });
   }
 
   if (request.method === "GET" && pathname === "/api/jobs") {
@@ -553,7 +594,7 @@ function requireLocalUpdateRequest(request, registry) {
 function serverInfoFor(registry) {
   return {
     name: "codex-canvas",
-    protocolVersion: 1,
+    protocolVersion: 2,
     version: APP_VERSION,
     pid: registry.pid,
     instanceId: registry.instanceId,
@@ -1125,7 +1166,7 @@ async function writeProjectRuntime(registry, project) {
       url: projectUrl(registry, project.id),
       pid: registry.pid,
       serverName: "codex-canvas",
-      serverProtocolVersion: 1,
+      serverProtocolVersion: 2,
       serverVersion: APP_VERSION,
       serverInstanceId: registry.instanceId,
       projectDir: project.projectDir,
