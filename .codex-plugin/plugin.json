@@ -3,11 +3,11 @@
   "version": "0.1.0+codex.20260810035113",
   "description": "Node-based local canvas for Codex text-to-image and image-to-image workflows.",
   "author": {
-    "name": "Codex-Canvas Contributors"
+    "name": "youzi2020520"
   },
   "homepage": "https://github.com/youzi2020520/canvas-codex",
   "repository": "https://github.com/youzi2020520/canvas-codex.git",
-  "license": "MIT",
+  "license": "Elastic-2.0",
   "keywords": [
     "codex",
     "canvas",

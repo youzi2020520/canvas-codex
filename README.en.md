@@ -127,3 +127,11 @@ Related docs:
 ## Credits
 
 Thanks to [Cowart](https://github.com/zhongerxin/Cowart) for the canvas concept.
+
+## License
+
+This project is released under the **Elastic License 2.0 (ELv2)**, see [`LICENSE`](LICENSE).
+
+The source code is publicly available for viewing, learning, personal use, and contribution. **Unauthorized** commercial use, providing the software as a hosted or embedded service, or redistributing it under a different name or without the copyright notice is **prohibited**. For commercial licensing or collaboration, contact the author.
+
+Trademarks, brand names, and logos belong to the author; this license does not grant any rights to use them.

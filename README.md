@@ -133,3 +133,11 @@ node ./bin/codex-canvas.mjs open --project .
 ## 致谢
 
 感谢 [Cowart](https://github.com/zhongerxin/Cowart) 提供的画布思路
+
+## 许可证
+
+本项目基于 **Elastic License 2.0 (ELv2)** 发布（见 [`LICENSE`](LICENSE)）。
+
+源码公开，可查看、学习、自用和贡献；**禁止未经授权**将本项目或其衍生作品用于商业目的、提供托管服务，或改名、去除版权标识后重新分发。如需商业授权或合作，请联系作者。
+
+商标、品牌名和 logo 归作者所有，本许可不授予任何商标使用权。

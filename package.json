@@ -68,15 +68,17 @@
     "imagegen"
   ],
   "author": {
-    "name": "Codex-Canvas Contributors"
+    "name": "youzi2020520"
   },
-  "license": "MIT",
+  "license": "Elastic-2.0",
   "engines": {
     "node": ">=18.18"
   },
   "dependencies": {
     "ag-psd": "^31.0.0",
     "cross-spawn": "^7.0.6",
+    "echarts": "^6.1.0",
+    "fflate": "^0.8.3",
     "pngjs": "^7.0.0"
   }
 }

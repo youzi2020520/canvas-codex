@@ -1,21 +1,63 @@
-MIT License
+Elastic License 2.0
 
-Copyright (c) 2026 Codex-Canvas Contributors
+Copyright (c) 2026 youzi2020520
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+URL: https://www.elastic.co/licensing/elastic-license
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## Acceptance
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+By using the software, you agree to all of the terms and conditions below.
+
+## Copyright License
+
+The licensor grants you a non-exclusive, royalty-free, worldwide,
+non-sublicensable, non-transferable license to use, copy, distribute, make
+available, and prepare derivative works of the software, in each case subject
+to the limitations and conditions below.
+
+## Limitations
+
+You may not provide the software to third parties as a hosted or embedded
+service in order to compete with our official products or services. You may
+not alter, remove, or obscure any licensing, copyright, or other notices of
+the licensor in the software. You may not, or cause a third party to, use,
+modify, copy, distribute, or make available the software in a way that
+fails to comply with the terms and conditions of this license.
+
+## Patents
+
+The licensor grants you a license, under any patent claims the licensor can
+license, or becomes able to license, that are necessarily infringed by the
+software, to make, have made, use, sell, offer for sale, import and have
+imported the software in each case subject to the limitations and conditions
+in this license. This license does not grant you any rights to use any trade
+name, trademark, service mark, or logo of the licensor.
+
+## Notices
+
+You must ensure that anyone who gets a copy of any part of the software from
+you also gets a copy of these terms.
+
+## Disclaimers
+
+The software is provided "as is" and without express or implied warranties,
+including, without limitation, the implied warranties of merchantability and
+fitness for a particular purpose.
+
+## Limitation of Liability
+
+To the fullest extent permitted by applicable law, in no event will the
+licensor be liable for any indirect, incidental, special, punitive, or
+consequential damages, or lost profits, or loss of data, whether in contract,
+tort, or otherwise, even if the licensor has been advised of the possibility
+of such damages.
+
+## Final Provisions
+
+If any provision of this license is held to be unenforceable by law, it will
+be enforced to the extent enforceable, and the remainder of this license will
+remain in effect.
+
+The license is the entire agreement between the parties relating to the use
+of the software, and supersedes all prior agreements and understandings,
+whether written or oral, relating to the subject matter of this license.
