@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { buildObfuscated } from "./build-obfuscate.mjs";
 
 const execFileAsync = promisify(execFile);
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -33,6 +34,8 @@ async function main() {
   }
 
   await fs.mkdir(outputDir, { recursive: true });
+  const obfuscated = await buildObfuscated();
+  console.log(`[obfuscate] built ${obfuscated.targets.length} obfuscated module(s) before packing.`);
   const packed = await npmPack(outputDir);
   validatePackedFiles(packed.files);
 
@@ -164,6 +167,7 @@ async function npmPack(outputDir) {
       await fs.mkdir(path.dirname(targetPath), { recursive: true });
       await fs.copyFile(sourcePath, targetPath);
     }
+    await applyObfuscatedSources(stageDir, preview.files);
     await sanitizeReleasePackageJson(stageDir);
     return await runNpmPack(
       npmExecutable,
@@ -186,6 +190,33 @@ async function runNpmPack(npmExecutable, args, cwd) {
     throw new Error("npm pack did not return exactly one package.");
   }
   return result[0];
+}
+
+// 打包时用混淆产物替换 stage 中的可读源码，发布包内不包含可直读实现。
+const OBFUSCATED_SOURCES = [
+  {
+    packedPath: "src/slides-layout-engine.mjs",
+    obfuscatedPath: "dist/obfuscated/slides-layout-engine.mjs"
+  },
+  {
+    packedPath: "src/pptx-export.mjs",
+    obfuscatedPath: "dist/obfuscated/pptx-export.mjs"
+  }
+];
+
+async function applyObfuscatedSources(stageDir, packedFiles) {
+  const packedNames = new Set((packedFiles || []).map((entry) => String(entry.path || "")));
+  for (const { packedPath, obfuscatedPath } of OBFUSCATED_SOURCES) {
+    if (!packedNames.has(packedPath)) continue;
+    const obfuscatedFile = path.join(rootDir, obfuscatedPath);
+    const stagedFile = path.join(stageDir, packedPath);
+    const contents = await fs.readFile(obfuscatedFile);
+    if (!contents.byteLength) {
+      throw new Error(`Obfuscated build is empty for ${packedPath}: ${obfuscatedPath}.`);
+    }
+    await fs.copyFile(obfuscatedFile, stagedFile);
+    console.log(`[obfuscate] packed ${packedPath} uses obfuscated build (${contents.byteLength} bytes).`);
+  }
 }
 
 async function sanitizeReleasePackageJson(stageDir) {

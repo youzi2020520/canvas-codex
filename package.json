@@ -59,6 +59,7 @@
     "verify:release": "node ./scripts/verify-release.mjs",
     "verify:archive": "node ./scripts/verify-release-archive.mjs",
     "build:release": "node ./scripts/build-release.mjs",
+    "build:obfuscate": "node ./scripts/build-obfuscate.mjs",
     "test": "npm run smoke"
   },
   "keywords": [
@@ -80,5 +81,8 @@
     "echarts": "^6.1.0",
     "fflate": "^0.8.3",
     "pngjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }
