@@ -65,3 +65,49 @@ jobs:
       - name: Smoke test installed release package
         if: runner.os == 'Linux' && matrix.node == '22.x'
         run: node scripts/verify-release-archive.mjs dist/release-ci/codex-canvas-v$(node -p "require('./package.json').version").tgz
+
+  obfuscate:
+    name: Obfuscated build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build obfuscated modules
+        run: npm run build:obfuscate
+
+      - name: Verify obfuscated output is minified
+        run: |
+          for file in dist/obfuscated/slides-layout-engine.mjs dist/obfuscated/pptx-export.mjs; do
+            test -s "$file" || { echo "missing or empty: $file"; exit 1; }
+            total=$(wc -c < "$file")
+            lines=$(wc -l < "$file")
+            [ "$lines" -eq 0 ] && lines=1
+            avg=$(( total / lines ))
+            test "$avg" -ge 500 || { echo "not minified: $file has only ${avg} bytes/line on average"; exit 1; }
+          done
+
+      - name: Verify obfuscated modules import correctly
+        run: |
+          cp dist/obfuscated/slides-layout-engine.mjs src/slides-layout-engine.obf-test.mjs
+          cp dist/obfuscated/pptx-export.mjs src/pptx-export.obf-test.mjs
+          node --input-type=module -e "
+            const layout = await import('./src/slides-layout-engine.obf-test.mjs');
+            for (const name of ['applyDeterministicLayout','inferSlideIntent','skillRouteForIntent','archetypeForIntent','validatePreLayout','validatePostLayout','SLIDE_INTENTS','SLIDE_ARCHETYPES','SLIDE_LAYOUTS']) {
+              if (!(name in layout)) throw new Error('slides-layout-engine missing export: ' + name);
+            }
+            const pptx = await import('./src/pptx-export.obf-test.mjs');
+            if (typeof pptx.exportSlidesPptx !== 'function') throw new Error('pptx-export missing export: exportSlidesPptx');
+            console.log('obfuscated modules import OK');
+          "
